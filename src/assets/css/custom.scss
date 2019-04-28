@@ -1,0 +1,40 @@
+$primary: #343a40;
+$secondary: #ddd;
+$grey: #ccc;
+$grey-light: #eee;
+$border: #ccc;
+
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+
+    .gap {
+        padding: 10px;
+        &-small {
+            padding: 5px;
+        }
+    }
+
+    table{
+        tr {
+            td {
+                height: 120px;
+                text-align: center;
+                vertical-align: middle !important;
+                font-size: 50px;
+                border: 3px solid black !important;
+                
+            }
+        }
+    }
+
+    .header {
+        
+    }
+
+    .footer {
+        
+    }
+    
+}
