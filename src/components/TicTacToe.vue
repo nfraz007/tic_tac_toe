@@ -12,19 +12,19 @@
           <div v-if="start">
             <table class="table">
               <tr>
-                <td width="100" @click="cell(0)">{{ game[0] }}</td>
-                <td width="100" @click="cell(1)">{{ game[1] }}</td>
-                <td width="100" @click="cell(2)">{{ game[2] }}</td>
+                <td width="100" :style="get_style(0)" @click="cell(0)">{{ board[0] }}</td>
+                <td width="100" :style="get_style(1)" @click="cell(1)">{{ board[1] }}</td>
+                <td width="100" :style="get_style(2)" @click="cell(2)">{{ board[2] }}</td>
               </tr>
               <tr>
-                <td width="100" @click="cell(3)">{{ game[3] }}</td>
-                <td width="100" @click="cell(4)">{{ game[4] }}</td>
-                <td width="100" @click="cell(5)">{{ game[5] }}</td>
+                <td width="100" :style="get_style(3)" @click="cell(3)">{{ board[3] }}</td>
+                <td width="100" :style="get_style(4)" @click="cell(4)">{{ board[4] }}</td>
+                <td width="100" :style="get_style(5)" @click="cell(5)">{{ board[5] }}</td>
               </tr>
               <tr>
-                <td width="100" @click="cell(6)">{{ game[6] }}</td>
-                <td width="100" @click="cell(7)">{{ game[7] }}</td>
-                <td width="100" @click="cell(8)">{{ game[8] }}</td>
+                <td width="100" :style="get_style(6)" @click="cell(6)">{{ board[6] }}</td>
+                <td width="100" :style="get_style(7)" @click="cell(7)">{{ board[7] }}</td>
+                <td width="100" :style="get_style(8)" @click="cell(8)">{{ board[8] }}</td>
               </tr>
             </table>
           </div>
@@ -41,46 +41,21 @@
 </template>
 
 <script>
+import Vue from 'vue'
+import { close } from 'fs';
+
 export default {
   name: 'TicTacToe',
   data() {
     return {
-      restart: false,
       start: false,
-      o:'O',
-      x:'X',
-      current_turn: '',
+      board: [],
+      style: [],
       total_turn: 0,
-      game: [],
-      winner: ''
-    }
-  },
-  mounted() {
-    this.game_start()
-  },
-  methods: {
-    game_start: function() {
-      this.start = true;
-      this.current_turn = this.x;
-      this.game = ["", "", "", "", "", "", "", "", ""];
-    },
-    game_restart: function() {
-      this.game_start()
-    },
-    info: function(type = "") {
-      return (this.current_turn == this.x) ? "Computer's turn" : "Your turn";
-    },
-    cell: function(index) {
-      if(!this.game[index] && this.start){
-        this.total_turn++;
-        this.game[index] = this.current_turn;
-        this.check_winner();
-        this.swap_turn();
-        console.log(this.game);
-      }
-    },
-    check_winner: function() {
-      const winner_combination = [
+      player_human: "O",
+      player_ai: "X",
+      winner: "",
+      win_combination: [
         [0,1,2],
         [3,4,5],
         [6,7,8],
@@ -89,29 +64,152 @@ export default {
         [2,5,8],
         [0,4,8],
         [2,4,6]
-      ];
-
-      // check for winner
-      winner_combination.forEach(wc => {
-        const [a, b, c] = wc;
-        const value_a = this.game[a];
-        const value_b = this.game[b];
-        const value_c = this.game[c];
-
-        if(value_a && value_a == value_b && value_a == value_c) {
-          // we got a winner
-          this.winner = value_a;
-          console.log("winner "+this.winner);
+      ]
+    }
+  },
+  mounted() {
+    this.game_start()
+  },
+  methods: {
+    game_start: function() {
+      this.reset()
+    },
+    game_restart() {
+      this.game_start();
+    },
+    reset: function() {
+      this.start = true;
+      this.winner = "";
+      this.board = ["","","","","","","","",""];
+      this.style = [[],[],[],[],[],[],[],[],[]];
+      console.log("game started");
+    },
+    cell: function(index) {
+      if(this.board[index] == ""){
+        this.total_turn++;
+        this.turn(index, this.player_human)
+        if(this.check_tie()){
+          // something
+        }else{
+          // console.log(this.best_spot());
+          var best_spot = this.best_spot();
+          this.turn(best_spot, this.player_ai)
         }
-      })
-
-      // check for tie
-      if(this.total_turn == this.game.length){
-        console.log("tie");
       }
     },
-    swap_turn: function() {
-      this.current_turn = (this.current_turn == this.x) ? this.o : this.x ;
+    turn: function(index, player) {
+      if(!this.winner || true){
+        console.log("pleyer "+player+" clicked at "+index)
+        Vue.set(this.board, index, player)
+        console.log(this.board)
+        this.cell_deactivate(index)
+        var game_won = this.check_win(this.board, player);
+        if(game_won) this.game_over(game_won);
+      }
+    },
+    best_spot: function() {
+      var minmax = this.minmax(this.board, this.player_ai);
+      console.log(minmax);
+      return minmax.index;
+    },
+    minmax: function(board, player) {
+      var empty_spot = this.empty_spot()
+      // console.log(empty_spot);throw "";
+      if(this.check_win(board, this.player_human)) return {score:-10}
+      else if(this.check_win(board, this.player_ai)) return {score:10}
+      else if(empty_spot.length == 0) return {score:0}
+      // console.log(1);throw "";
+      var moves = [];
+      empty_spot.forEach((value, index) => {
+        var move = {};
+        move.index = value;
+        board[value] = player;
+        // console.log({move, board});throw "";
+        if(player == this.player_ai){
+          var result = this.minmax(board, this.player_human);
+          // console.log(result);throw "";
+          move.score = result.score;
+        }else{
+          var result = this.minmax(board, this.player_ai);
+          // console.log(result);throw "";
+          move.score = result.score;
+        }
+
+        board[value] = "";
+        // console.log(move);
+        moves.push(move);
+      });
+      // console.log(moves);throw "";
+
+      var best_move;
+      if(player == this.player_ai){
+        var best_score = -100000;
+        moves.forEach((value, index) => {
+          if(value.score > best_score) {
+            best_score = value.score;
+            best_move = index
+          }
+        });
+      }else{
+        var best_score = 100000;
+        moves.forEach((value, index) => {
+          if(value.score < best_score) {
+            best_score = value.score;
+            best_move = index
+          }
+        });
+      }
+      // console.log(moves[best_move]);
+      // console.log({best_move, best_score});throw "";
+      return moves[best_move];
+    },
+    empty_spot: function() {
+      var empty_spot = [];
+      this.board.forEach((value, index) => {
+        if(value=="") empty_spot.push(index)
+      });
+      return empty_spot
+    },
+    check_win: function(board, player) {
+      var plays = board.reduce((a,b,c) => (b==player) ? a.concat(c) : a, [])
+      var game_won = null;
+      for(var [index, win] of this.win_combination.entries()) {
+        if(win.every(elem => plays.indexOf(elem) > -1)) {
+          // this.winner = player;
+          game_won = {index: index, player: player};
+          break;
+        }
+      }
+      return game_won;
+    },
+    check_tie: function() {
+      if(this.empty_spot().length==0){
+        console.log("game is a tie")
+        return true;
+      }else return false
+    },
+    game_over: function(game_won) {
+      console.log("game win by "+game_won.player)
+      for(var index of this.win_combination[game_won.index]){
+        this.style[index].push("background:green");
+      }
+      this.cell_deactivate()
+    },
+    info: function() {
+      return "Turn"
+    },
+    cell_deactivate: function(index=null) {
+      if(index!=null) {
+        this.style[index].push("background:grey")
+        this.style[index].push("cursor:not-allowed")
+      }else{
+        for(var i=0;i<9;i++) {
+          this.style[i].push("cursor:not-allowed")
+        }
+      }
+    },
+    get_style: function(index) {
+      return this.style[index].join(";");
     }
   }
 }
