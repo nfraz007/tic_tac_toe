@@ -7,7 +7,7 @@
           <div class="gap"></div>
           <h2 class="text-center">Tic Tac Toe</h2>
           <div class="gap"></div>
-          <h3 class="text-center">{{ info() }}</h3>
+          <h3 class="text-center">{{ info }}</h3>
           <div class="gap"></div>
           <div v-if="start">
             <table class="table">
@@ -49,6 +49,7 @@ export default {
   data() {
     return {
       start: false,
+      info: "",
       board: [],
       style: [],
       total_turn: 0,
@@ -79,6 +80,7 @@ export default {
     },
     reset: function() {
       this.start = true;
+      this.info = "";
       this.winner = "";
       this.board = ["","","","","","","","",""];
       this.style = [[],[],[],[],[],[],[],[],[]];
@@ -175,7 +177,6 @@ export default {
       var game_won = null;
       for(var [index, win] of this.win_combination.entries()) {
         if(win.every(elem => plays.indexOf(elem) > -1)) {
-          // this.winner = player;
           game_won = {index: index, player: player};
           break;
         }
@@ -185,18 +186,17 @@ export default {
     check_tie: function() {
       if(this.empty_spot().length==0){
         console.log("game is a tie")
+        this.info = "Tie, You can't beat me.";
         return true;
       }else return false
     },
     game_over: function(game_won) {
       console.log("game win by "+game_won.player)
+      this.info = (this.player_ai == game_won.player) ? "You lose :(" : "You Won :)";
       for(var index of this.win_combination[game_won.index]){
-        this.style[index].push("background:green");
+        this.style[index].push((this.player_ai == game_won.player) ? "background:red" : "background:green");
       }
       this.cell_deactivate()
-    },
-    info: function() {
-      return "Turn"
     },
     cell_deactivate: function(index=null) {
       if(index!=null) {
